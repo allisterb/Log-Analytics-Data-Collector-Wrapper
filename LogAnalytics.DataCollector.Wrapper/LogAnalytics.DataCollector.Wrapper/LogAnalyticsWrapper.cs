@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace LogAnalytics.DataCollector.Wrapper
 {
-    public class LogAnalyticsWrapper : ILogAnalyticsWrapper
+    public class LogAnalyticsWrapper //: ILogAnalyticsWrapper
     {
         private string WorkspaceId { get; }
         private string SharedKey { get; }
@@ -35,7 +35,7 @@ namespace LogAnalytics.DataCollector.Wrapper
             httpClient = new HttpClient();
         }
 
-        public async Task SendLogEntry<T>(T entity, string logType)
+        public async Task<string> SendLogEntry<T>(T entity, string logType)
         {
             #region Argument validation
 
@@ -53,10 +53,10 @@ namespace LogAnalytics.DataCollector.Wrapper
             #endregion
 
             List<T> list = new List<T> {entity};
-            await SendLogEntries(list, logType).ConfigureAwait(false);
+            return await SendLogEntries(list, logType).ConfigureAwait(false);
         }
 
-        public async Task SendLogEntries<T>(List<T> entities, string logType)
+        public async Task<string> SendLogEntries<T>(List<T> entities, string logType)
         {
             #region Argument validation
 
@@ -88,10 +88,17 @@ namespace LogAnalytics.DataCollector.Wrapper
 
             HttpContent httpContent = new StringContent(entityAsJson, Encoding.UTF8);
             httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-            HttpResponseMessage response = await httpClient.PostAsync(new Uri(RequestBaseUrl), httpContent).ConfigureAwait(false);
-
-            HttpContent responseContent = response.Content;
-            string result = await responseContent.ReadAsStringAsync().ConfigureAwait(false);
+            HttpResponseMessage response = await httpClient.PostAsync(new Uri(RequestBaseUrl), httpContent);
+            if (response.IsSuccessStatusCode)
+            {
+                HttpContent responseContent = response.Content;
+                return await responseContent.ReadAsStringAsync();
+            }
+            else
+            {
+                return string.Empty;
+            }
+            //var await responseContent.ReadAsStringAsync().ConfigureAwait(false);
             // helpful todo: if you want to return the data, this might be a good place to start working with it...
         }
 
